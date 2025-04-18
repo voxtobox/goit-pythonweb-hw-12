@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "goit-pythonweb-hw-10"
+name = "goit-pythonweb-hw-12"
 version = "0.1.0"
 description = ""
 authors = ["Volodymyr Antoniuk <voxtobox@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.12"
 sqlalchemy = "^2.0.40"
 alembic = "^1.15.2"
 asyncpg = "^0.30.0"
@@ -25,8 +25,17 @@ cloudinary = "^1.44.0"
 python-jose = "^3.4.0"
 pydantic-settings = "^2.8.1"
 bcrypt = "^4.3.0"
+pytest = "^8.3.5"
+pytest-asyncio = "^0.26.0"
+pytest-cov = "^6.1.1"
+aiosqlite = "^0.21.0"
 
+[tool.poetry.group.dev.dependencies]
+sphinx = "^8.2.3"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

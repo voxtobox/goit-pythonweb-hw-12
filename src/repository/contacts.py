@@ -13,17 +13,38 @@ from datetime import date, timedelta
 
 class ContactRepository:
     def __init__(self, session: AsyncSession):
+        """
+        Instantiate the ContactRepository with a database session.
+
+        Args:
+            session: An AsyncSession instance connected to the database.
+        """
         self.db = session
 
     async def get_contacts(
-        self,
-        user: User,
-        skip: int = 0,
-        limit: int = 10,
-        first_name: Optional[str] = None,
-        last_name: Optional[str] = None,
-        email: Optional[str] = None,
+            self,
+            user: User,
+            skip: int = 0,
+            limit: int = 10,
+            first_name: Optional[str] = None,
+            last_name: Optional[str] = None,
+            email: Optional[str] = None,
     ) -> List[Contact]:
+        """
+        Retrieve a paginated list of contacts belonging to a specific user, with optional filters.
+
+        Args:
+            skip: Number of contacts to skip from the beginning of the result set.
+            limit: Maximum number of contacts to return.
+            user: The user whose contacts are to be retrieved.
+            first_name: Filter contacts by first name (partial matches allowed).
+            last_name: Filter contacts by last name (partial matches allowed).
+            email: Filter contacts by email address (partial matches allowed).
+
+        Returns:
+            A list containing the filtered contacts.
+        """
+
         filters = []
 
         if first_name:
@@ -33,7 +54,7 @@ class ContactRepository:
         if email:
             filters.append(Contact.email.like(f"%{email}%"))
 
-        # Build the query dynamically
+        # Dynamically construct the query with provided filters
         stmt = (
             select(Contact)
             .filter_by(user=user)
@@ -46,11 +67,32 @@ class ContactRepository:
         return contacts.scalars().all()
 
     async def get_contact_by_id(self, contact_id: int, user: User) -> Contact | None:
+        """
+        Retrieve a contact by its unique identifier for a given user.
+
+        Args:
+            contact_id: The unique identifier of the contact to fetch.
+            user: The user who owns the contact.
+
+        Returns:
+            The contact object matching the provided ID, or None if not found.
+        """
         stmt = select(Contact).filter_by(id=contact_id, user=user)
         contact = await self.db.execute(stmt)
         return contact.scalar_one_or_none()
 
     async def create_contact(self, body: ContactBase, user: User) -> Contact:
+        """
+        Add a new contact to the database for a specified user.
+
+        Args:
+            body: An instance of ContactBase containing the contact's details.
+            user: The user who will own the new contact.
+
+        Returns:
+            The newly created contact object.
+        """
+
         contact = Contact(**body.model_dump(exclude_unset=True), user=user)
         self.db.add(contact)
         await self.db.commit()
@@ -58,8 +100,20 @@ class ContactRepository:
         return contact
 
     async def update_contact(
-        self, contact_id: int, body: ContactBase, user: User
+            self, contact_id: int, body: ContactBase, user: User
     ) -> Contact | None:
+        """
+        Modify the details of an existing contact for a specific user.
+
+        Args:
+            contact_id: The unique identifier of the contact to update.
+            body: An instance of ContactBase with updated contact information.
+            user: The user who owns the contact.
+
+        Returns:
+            The updated contact object, or None if the contact does not exist.
+        """
+
         contact = await self.get_contact_by_id(contact_id, user)
         if contact:
             contact.first_name = body.first_name
@@ -74,6 +128,17 @@ class ContactRepository:
         return contact
 
     async def remove_contact(self, contact_id: int, user: User) -> Contact | None:
+        """
+        Remove a contact from the database by its unique identifier.
+
+        Args:
+            contact_id: The unique identifier of the contact to remove.
+            user: The user who owns the contact.
+
+        Returns:
+            The deleted contact object, or None if no such contact exists.
+        """
+
         contact = await self.get_contact_by_id(contact_id, user)
         if contact:
             await self.db.delete(contact)
@@ -81,11 +146,22 @@ class ContactRepository:
         return contact
 
     async def get_upcoming_birthdays(self, user: User, days: int = 7) -> List:
+        """
+        Retrieve contacts with birthdays occurring within the next specified number of days.
+
+        Args:
+            days: The number of days ahead to check for upcoming birthdays.
+            user: The user whose contacts are to be checked.
+
+        Returns:
+            A list of contacts who have birthdays within the specified upcoming period.
+        """
+
         today = date.today()
         target_date = today + timedelta(days=days)
 
         if target_date.year == today.year:
-            # Query stays within the same year
+            # If the target date is within the same calendar year
             stmt = (
                 select(Contact)
                 .filter_by(user=user)
@@ -107,10 +183,10 @@ class ContactRepository:
                 )
             )
         else:
-            # Range crosses into the next year
+            # If the range spans into the next calendar year
             stmt = select(Contact).filter(
                 or_(
-                    # Birthdays in the current year
+                    # Birthdays remaining in the current year
                     and_(
                         extract("month", Contact.birthday) == today.month,
                         extract("day", Contact.birthday) >= today.day,
@@ -118,7 +194,7 @@ class ContactRepository:
                     and_(
                         extract("month", Contact.birthday) > today.month,
                     ),
-                    # Birthdays in the next year
+                    # Birthdays in the next calendar year
                     and_(
                         extract("month", Contact.birthday) == target_date.month,
                         extract("day", Contact.birthday) <= target_date.day,

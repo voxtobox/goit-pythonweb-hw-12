@@ -3,25 +3,25 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DB_URL: str
-    JWT_SECRET: str
+    DB_URL: str = "sqlite+aiosqlite:///./test.db"
+    JWT_SECRET: str = "secret"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_SECONDS: int = 3600
 
-    MAIL_USERNAME: EmailStr
-    MAIL_PASSWORD: str
-    MAIL_FROM: EmailStr
+    MAIL_USERNAME: EmailStr = "<EMAIL>"
+    MAIL_PASSWORD: str = "<PASSWORD>"
+    MAIL_FROM: EmailStr = "email@example.com"
     MAIL_PORT: int = 465
-    MAIL_SERVER: str
-    MAIL_FROM_NAME: str
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_FROM_NAME: str = "Gmail"
     MAIL_STARTTLS: bool = False
     MAIL_SSL_TLS: bool = True
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
 
-    CLD_NAME: str
-    CLD_API_KEY: int
-    CLD_API_SECRET: str
+    CLD_NAME: str = "<CLD_NAME>"
+    CLD_API_KEY: int = "<CLD_API_KEY>"
+    CLD_API_SECRET: str = "<CLD_API_SECRET>"
 
     model_config = ConfigDict(
         extra="ignore", env_file=".env", env_file_encoding="utf-8", case_sensitive=True
