@@ -16,7 +16,6 @@ email-validator = "^2.2.0"
 dotenv = "^0.9.9"
 psycopg2-binary = "^2.9.10"
 greenlet = "^3.1.1"
-passlib = "^1.7.4"
 libgravatar = "^1.0.4"
 python-multipart = "^0.0.20"
 slowapi = "^0.1.9"
@@ -24,12 +23,12 @@ fastapi-mail = "^1.4.2"
 cloudinary = "^1.44.0"
 python-jose = "^3.4.0"
 pydantic-settings = "^2.8.1"
-bcrypt = "^4.3.0"
 pytest = "^8.3.5"
 pytest-asyncio = "^0.26.0"
 pytest-cov = "^6.1.1"
 aiosqlite = "^0.21.0"
-
+redis = "^5.2.1"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 [tool.poetry.group.dev.dependencies]
 sphinx = "^8.2.3"
 

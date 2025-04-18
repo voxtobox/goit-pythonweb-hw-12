@@ -31,6 +31,7 @@ from src.services.auth import (
 from src.services.users import UserService
 from src.database.db import get_db
 from src.services.email import send_email, send_reset_password_email
+from src.redis.redis import get_redis
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -83,7 +84,9 @@ async def register_user(
 
 @router.post("/login", response_model=Token)
 async def login_user(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ):
     """
     Authenticate and log in a user.
@@ -116,6 +119,7 @@ async def login_user(
     refresh_token = await create_refresh_token(data={"sub": user.username})
 
     await user_service.refresh_token(user.id, refresh_token)
+    redis.delete(str(user.username))
 
     return {
         "access_token": access_token,

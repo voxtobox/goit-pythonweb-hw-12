@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, UTC
 from typing import Optional, Literal
+import pickle
 
 from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext
@@ -13,6 +14,7 @@ from src.conf.config import settings
 from src.database.models import UserRole
 from src.schemas import User
 from src.services.users import UserService
+from src.redis.redis import get_redis
 
 
 class Hash:
@@ -22,6 +24,7 @@ class Hash:
     Attributes:
         pwd_context: CryptContext instance configured for bcrypt hashing.
     """
+
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def verify_password(self, plain_password, hashed_password):
@@ -38,7 +41,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 def create_token(
-        data: dict, expires_delta: timedelta, token_type: Literal["access", "refresh"]
+    data: dict, expires_delta: timedelta, token_type: Literal["access", "refresh"]
 ) -> str:
     """
     Generate JWT token with specified type and expiration time.
@@ -81,7 +84,9 @@ async def create_access_token(data: dict, expires_delta: Optional[float] = None)
     return access_token
 
 
-async def create_refresh_token(data: dict, expires_delta: Optional[float] = None) -> str:
+async def create_refresh_token(
+    data: dict, expires_delta: Optional[float] = None
+) -> str:
     """
     Create refresh token with default expiration from settings.
 
@@ -102,7 +107,9 @@ async def create_refresh_token(data: dict, expires_delta: Optional[float] = None
 
 
 async def get_current_user(
-        token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis),
 ) -> User:
     """
     Dependency to get current authenticated user from JWT token.
@@ -129,10 +136,16 @@ async def get_current_user(
 
     except JWTError as e:
         raise credentials_exception
-    user_service = UserService(db)
-    user = await user_service.get_user_by_username(username)
+    user = redis.get(str(username))
     if user is None:
-        raise credentials_exception
+        user_service = UserService(db)
+        user = await user_service.get_user_by_username(username)
+        if user is None:
+            raise credentials_exception
+        redis.set(str(username), pickle.dumps(user))
+        redis.expire(str(username), 3600)
+    else:
+        user = pickle.loads(user)
     return user
 
 
